@@ -5,6 +5,7 @@ use App\Http\Controllers\Billing\BillingPortalController;
 use App\Http\Controllers\Billing\CheckoutController;
 use App\Http\Controllers\CurrentTeamController;
 use App\Http\Controllers\Marketplace\CheckoutController as MarketplaceCheckoutController;
+use App\Http\Controllers\Marketplace\DownloadController;
 use App\Http\Controllers\TeamInvitationController;
 use App\Support\Plans\PlanRegistry;
 use Illuminate\Support\Facades\DB;
@@ -68,6 +69,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('checkout.success');
 
     Route::livewire('purchases', 'pages::purchases.index')->name('purchases.index');
+
+    /*
+    | Downloads are two-step: authorize and mint a short-lived signed
+    | URL, then redeem it. Both steps re-check the license.
+    */
+    Route::post('downloads/{license}/{version}', [DownloadController::class, 'create'])
+        ->name('downloads.create');
+
+    Route::get('downloads/{license}/{version}', [DownloadController::class, 'show'])
+        ->middleware('signed')
+        ->name('downloads.show');
 });
 
 Route::middleware('auth')->group(function () {

@@ -1,8 +1,11 @@
 <?php
 
+use App\Actions\Marketplace\AuthorizeDownload;
 use App\Models\License;
+use App\Models\LicenseActivation;
 use App\Models\Order;
 use App\Support\CurrentTeam;
+use Flux\Flux;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -12,6 +15,36 @@ new #[Title('My purchases')] class extends Component {
     public function mount(): void
     {
         abort_if(app(CurrentTeam::class)->model() === null, 403);
+    }
+
+    /**
+     * Free a seat so the buyer can move an install to another domain.
+     */
+    public function deactivate(int $activationId): void
+    {
+        $activation = LicenseActivation::query()
+            ->whereKey($activationId)
+            // The license query is team-scoped, so this cannot touch
+            // another team's activation.
+            ->whereIn('license_id', License::query()->select('id'))
+            ->first();
+
+        if ($activation === null) {
+            abort(404);
+        }
+
+        $activation->delete();
+
+        unset($this->licenses);
+
+        Flux::toast(variant: 'success', text: __('Activation released.'));
+    }
+
+    public function downloadsRemaining(License $license): int
+    {
+        $limit = (int) config('marketplace.downloads.daily_limit');
+
+        return max(0, $limit - app(AuthorizeDownload::class)->downloadsToday($license));
     }
 
     /**
@@ -48,6 +81,12 @@ new #[Title('My purchases')] class extends Component {
     @if (session('status'))
         <flux:callout variant="success" class="mb-6" data-test="purchase-status">
             {{ session('status') }}
+        </flux:callout>
+    @endif
+
+    @if (session('error'))
+        <flux:callout variant="danger" class="mb-6" data-test="purchase-error">
+            {{ session('error') }}
         </flux:callout>
     @endif
 
@@ -113,6 +152,82 @@ new #[Title('My purchases')] class extends Component {
                             @endif
                         </div>
                     </div>
+
+                    {{-- Releases --}}
+                    @if ($license->isActive() && $license->product)
+                        <div class="mt-4 border-t border-zinc-200 pt-4 dark:border-zinc-700">
+                            <div class="flex items-center justify-between">
+                                <flux:text class="text-xs font-medium">{{ __('Downloads') }}</flux:text>
+                                <flux:text class="text-xs">
+                                    {{ __(':count left today', ['count' => $this->downloadsRemaining($license)]) }}
+                                </flux:text>
+                            </div>
+
+                            <div class="mt-2 space-y-2">
+                                @foreach ($license->product->versions->sortByDesc('released_at') as $version)
+                                    @php($allowed = $license->canDownload($version))
+
+                                    <div class="flex items-center justify-between gap-3" wire:key="version-{{ $license->id }}-{{ $version->id }}">
+                                        <flux:text class="text-sm">
+                                            v{{ $version->version }}
+                                            <span class="text-xs text-zinc-500">
+                                                · {{ $version->released_at?->toFormattedDateString() }}
+                                                · {{ $version->formattedFileSize() }}
+                                            </span>
+                                        </flux:text>
+
+                                        @if ($allowed)
+                                            <form method="POST" action="{{ route('downloads.create', [$license, $version]) }}">
+                                                @csrf
+                                                <flux:button
+                                                    type="submit"
+                                                    size="sm"
+                                                    icon="arrow-down-tray"
+                                                    data-test="download-{{ $version->id }}"
+                                                >
+                                                    {{ __('Download') }}
+                                                </flux:button>
+                                            </form>
+                                        @else
+                                            <flux:badge size="sm" color="zinc" data-test="download-locked-{{ $version->id }}">
+                                                {{ __('Renew for access') }}
+                                            </flux:badge>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                    {{-- Activations --}}
+                    @if ($license->activations->isNotEmpty())
+                        <div class="mt-4 border-t border-zinc-200 pt-4 dark:border-zinc-700">
+                            <flux:text class="text-xs font-medium">{{ __('Active installs') }}</flux:text>
+
+                            <div class="mt-2 space-y-2">
+                                @foreach ($license->activations as $activation)
+                                    <div class="flex items-center justify-between gap-3" wire:key="activation-{{ $activation->id }}">
+                                        <flux:text class="text-sm">
+                                            {{ $activation->instance }}
+                                            <span class="text-xs text-zinc-500">
+                                                · {{ $activation->activated_at->toFormattedDateString() }}
+                                            </span>
+                                        </flux:text>
+
+                                        <flux:button
+                                            size="sm"
+                                            variant="ghost"
+                                            wire:click="deactivate({{ $activation->id }})"
+                                            wire:confirm="{{ __('Release this activation?') }}"
+                                            data-test="deactivate-{{ $activation->id }}"
+                                        >
+                                            {{ __('Release') }}
+                                        </flux:button>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
                 </div>
             @endforeach
         </div>
