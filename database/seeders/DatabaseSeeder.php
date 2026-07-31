@@ -18,9 +18,16 @@ class DatabaseSeeder extends Seeder
         $this->call(RolesAndPermissionsSeeder::class);
 
         if (app()->environment('local')) {
+            $this->call(MarketplaceSeeder::class);
+
             User::factory()->create([
                 'name' => 'Test User',
                 'email' => 'test@example.com',
+            ]);
+
+            User::factory()->staff()->create([
+                'name' => 'Staff User',
+                'email' => 'staff@example.com',
             ]);
         }
     }

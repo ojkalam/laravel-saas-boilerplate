@@ -29,6 +29,14 @@
                     <flux:sidebar.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
                         {{ __('Dashboard') }}
                     </flux:sidebar.item>
+
+                    <flux:sidebar.item icon="shopping-bag" :href="route('marketplace.index')" :current="request()->routeIs('marketplace.*')" wire:navigate>
+                        {{ __('Marketplace') }}
+                    </flux:sidebar.item>
+
+                    <flux:sidebar.item icon="arrow-down-tray" :href="route('purchases.index')" :current="request()->routeIs('purchases.*')" wire:navigate>
+                        {{ __('My purchases') }}
+                    </flux:sidebar.item>
                 </flux:sidebar.group>
             </flux:sidebar.nav>
 

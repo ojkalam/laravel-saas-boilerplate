@@ -1,8 +1,8 @@
 # Laravel SaaS Boilerplate
 
-A production-grade SaaS starter built on **Laravel 13**, **Livewire 4 + Flux UI**, **PostgreSQL**, and **Stripe** — with single-database, team-scoped multi-tenancy, plan-driven entitlements, and a Filament v5 staff back-office.
+A production-grade SaaS starter built on **Laravel 13**, **Livewire 4 + Flux UI**, **PostgreSQL**, and **Stripe** — with single-database, team-scoped multi-tenancy, plan-driven entitlements, a Filament v5 staff back-office, and a **digital marketplace** for selling themes and apps.
 
-Built following the plan in [`laravelsaasboilerplate.md`](laravelsaasboilerplate.md).
+Built following the plans in [`laravelsaasboilerplate.md`](laravelsaasboilerplate.md) and [`MARKETPLACE_PLAN.md`](MARKETPLACE_PLAN.md).
 
 ## Stack
 
@@ -48,7 +48,7 @@ php artisan test --parallel
 - The current team is resolved **once per request** from `auth()->user()->current_team_id` by [`SetCurrentTeam`](app/Http/Middleware/SetCurrentTeam.php) into the [`CurrentTeam`](app/Support/CurrentTeam.php) scoped singleton — never from request input.
 - Queued jobs extend [`TenantAwareJob`](app/Jobs/TenantAwareJob.php), which re-binds the team context around `execute()`.
 - [`tests/Feature/Tenancy`](tests/Feature/Tenancy) auto-discovers every model using the trait and asserts team B can never read or write team A's rows. New tenant models are covered automatically — give them a factory.
-- CI greps for `withoutGlobalScope(s)` outside `app/Filament` and fails the build if found.
+- Leaving the tenant scope goes through one named scope, `Model::acrossTeams()` — used only where there genuinely is no current team (Stripe webhooks, queued jobs, key-authenticated API calls, the staff back-office). CI fails the build on any raw `withoutGlobalScope` call outside the trait that defines it, so every exception stays visible in one place.
 
 Every new user gets a **personal team** at registration; the team (not the user) owns the subscription, so solo → team growth never requires a data migration.
 
@@ -70,9 +70,27 @@ Four global roles — `owner`, `admin`, `member`, `billing` — assigned **per t
 
 Tokens are created in **Settings → API tokens** and carry a single `team:{id}` ability. [`SetTeamFromApiToken`](app/Http/Middleware/SetTeamFromApiToken.php) verifies membership, enforces the plan's `api` feature and monthly quota, meters usage, and binds the team before the per-plan rate limiter (`api_rate_per_minute`) runs. Example resource: `/api/v1/projects`.
 
+## Marketplace
+
+Sell themes and apps to buyer teams. Catalog data is public; **what a team bought** (orders, licenses, downloads) is team-scoped like everything else.
+
+**Storefront** — `/marketplace` browse with live search, type/category filters and five sort modes; `/marketplace/{slug}` detail with screenshot gallery, release history and a buy panel. Drafts and archived listings 404 publicly.
+
+**Buying** — one product per checkout. A local `pending` order is created, then Stripe Checkout runs with the order id in metadata. **Only the `checkout.session.completed` webhook grants anything** — the browser redirect is treated as untrusted — and fulfillment is idempotent, so Stripe's retries can't mint duplicate licenses. Free products skip Stripe entirely. `charge.refunded` refunds the order and revokes its licenses.
+
+**Licensing** — one key per purchased product, with an activation limit and a 12-month updates window (`config/marketplace.php`). The key never stops working; releases published *after* the window closes stop being downloadable until it's extended.
+
+**Downloads** — two steps: authorize and mint a 15-minute signed URL, then redeem it. Both ends re-run the full check, since a signature only proves the link was issued. Every redemption writes a `downloads` audit row and there's a per-license daily cap so a leaked key can't mirror the files. Release archives live on a private disk and are never served directly.
+
+**License API** for installed copies (`/api/v1/license/*`, key-authenticated, throttled): `activate`, `deactivate`, `check`, `latest-version`, `download`. Instance ids are normalized so `https://Example.com/` and `example.com` are one seat, and re-activation after a redeploy is a no-op rather than an error.
+
+```bash
+php artisan db:seed --class=MarketplaceSeeder   # demo catalog (local)
+```
+
 ## Staff back-office
 
-Filament v5 at `/admin`: teams with plan + subscription status, Stripe deep links, credit tool, and **time-boxed, audit-logged user impersonation** (60 min, auto-expiring, staff-only, banner + stop button in the app shell).
+Filament v5 at `/admin`, grouped into **Marketplace** (products with inline release + screenshot uploads and a publish guard that refuses to publish a product with nothing to download; categories; read-only orders with a refund action; licenses with revoke/restore, extend-updates and change-seats) and **Customers** (teams with plan + subscription status, Stripe deep links, credit tool; users with **time-boxed, audit-logged impersonation** — 60 min, auto-expiring, staff-only, banner + stop button in the app shell). A revenue widget shows month/all-time paid revenue, refunds, active licenses and downloads.
 
 ## Scheduled jobs
 
@@ -87,4 +105,4 @@ Filament v5 at `/admin`: teams with plan + subscription status, Stripe deep link
 
 ## CI
 
-`.github/workflows/ci.yml` runs on Postgres 17 + Redis: Pint, Larastan (level 7), the tenancy scope-bypass grep, `composer audit`, and the parallel Pest suite (150 tests).
+`.github/workflows/ci.yml` runs on Postgres 17 + Redis: Pint, Larastan (level 7), the tenancy scope-bypass grep, `composer audit`, and the parallel Pest suite (252 tests).
