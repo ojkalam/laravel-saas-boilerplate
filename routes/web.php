@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\Billing\BillingPortalController;
 use App\Http\Controllers\Billing\CheckoutController;
 use App\Http\Controllers\CurrentTeamController;
+use App\Http\Controllers\Marketplace\CheckoutController as MarketplaceCheckoutController;
 use App\Http\Controllers\TeamInvitationController;
 use App\Support\Plans\PlanRegistry;
 use Illuminate\Support\Facades\DB;
@@ -53,6 +54,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('billing/portal', BillingPortalController::class)
         ->name('billing.portal');
+
+    /*
+    | Marketplace purchases. Buying is deliberately throttled: each
+    | attempt creates an order row and, for paid products, a Stripe
+    | session.
+    */
+    Route::post('checkout/{product}', [MarketplaceCheckoutController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('checkout.store');
+
+    Route::get('checkout/success', [MarketplaceCheckoutController::class, 'success'])
+        ->name('checkout.success');
+
+    Route::livewire('purchases', 'pages::purchases.index')->name('purchases.index');
 });
 
 Route::middleware('auth')->group(function () {

@@ -112,7 +112,8 @@ test('file sizes render in human units', function () {
 });
 
 test('product changes are written to the activity log', function () {
-    $product = Product::factory()->create();
+    // Pin both prices: logOnlyDirty means an unchanged value logs nothing.
+    $product = Product::factory()->create(['price' => 1000]);
 
     $product->update(['price' => 9900]);
 
