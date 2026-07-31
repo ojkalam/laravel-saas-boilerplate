@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Laravel\Cashier\Cashier;
+use Laravel\Pennant\Feature;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -33,11 +34,24 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->configureFeatures();
     }
 
     /**
      * Configure default behaviors for production-ready applications.
      */
+    /**
+     * Pennant features are scoped to the current Team, and every
+     * feature resolves from the team's plan — call sites only ever
+     * ask Feature::active('...').
+     */
+    protected function configureFeatures(): void
+    {
+        Feature::resolveScopeUsing(fn ($driver) => app(CurrentTeam::class)->model());
+
+        Feature::discover();
+    }
+
     protected function configureDefaults(): void
     {
         // Staff members bypass all authorization checks. Keep staff

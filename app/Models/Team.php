@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Support\Plans\Plan;
 use App\Support\Plans\PlanRegistry;
+use App\Support\Usage\UsageMeter;
 use Carbon\CarbonImmutable;
 use Database\Factories\TeamFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -75,6 +76,59 @@ class Team extends Model
     public function hasActiveSubscription(): bool
     {
         return $this->subscribed('default');
+    }
+
+    /**
+     * Start of the current billing period, derived from the
+     * subscription anchor (or the team's creation for free/trial
+     * teams) advanced in whole months — not calendar months.
+     */
+    public function currentPeriodStart(): CarbonImmutable
+    {
+        $subscription = $this->subscription('default');
+
+        $anchor = CarbonImmutable::make(
+            ($subscription !== null ? $subscription->created_at : $this->created_at) ?? now(),
+        );
+
+        $months = (int) $anchor->diffInMonths(now());
+
+        return $anchor->addMonths(max(0, $months));
+    }
+
+    /**
+     * Metered entitlement check, e.g. $team->canConsume('api_calls').
+     */
+    public function canConsume(string $metric, int $amount = 1): bool
+    {
+        return app(UsageMeter::class)->canConsume($this, $metric, $amount);
+    }
+
+    public function recordUsage(string $metric, int $amount = 1): void
+    {
+        app(UsageMeter::class)->record($this, $metric, $amount);
+    }
+
+    public function usage(string $metric): int
+    {
+        return app(UsageMeter::class)->usage($this, $metric);
+    }
+
+    /**
+     * Stock (non-metered) limit check, e.g. seats or projects:
+     * whether $count items fit within the plan.
+     */
+    public function withinPlanLimit(string $metric, int $count): bool
+    {
+        $plan = $this->plan();
+
+        if ($plan->isUnlimited($metric)) {
+            return true;
+        }
+
+        $limit = $plan->limit($metric);
+
+        return $limit !== null && $count <= $limit;
     }
 
     /**
