@@ -26,6 +26,12 @@ Route::get('health', function () {
     ], $healthy ? 200 : 503);
 })->name('health');
 
+/*
+| Storefront — public. Guests browse freely; buying requires an account.
+*/
+Route::livewire('marketplace', 'pages::marketplace.index')->name('marketplace.index');
+Route::livewire('marketplace/{product}', 'pages::marketplace.show')->name('marketplace.show');
+
 Route::get('pricing', function () {
     return view('pricing', [
         'plans' => app(PlanRegistry::class)->all(),
