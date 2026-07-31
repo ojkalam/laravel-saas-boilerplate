@@ -3,7 +3,6 @@
 namespace App\Support\Usage;
 
 use App\Models\Team;
-use App\Models\UsageCounter;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -42,7 +41,9 @@ class UsageMeter
      */
     public function usage(Team $team, string $metric): int
     {
-        return (int) UsageCounter::withoutGlobalScope('team')
+        // Queries the table directly (not the scoped model): the team
+        // is explicit here and jobs may meter without a bound context.
+        return (int) DB::table('usage_counters')
             ->where('team_id', $team->id)
             ->where('metric', $metric)
             ->where('period_start', $team->currentPeriodStart())

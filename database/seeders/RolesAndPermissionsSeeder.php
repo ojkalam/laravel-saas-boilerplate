@@ -23,9 +23,20 @@ class RolesAndPermissionsSeeder extends Seeder
             Permission::findOrCreate($permission, 'web');
         }
 
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
         foreach (TeamRole::cases() as $role) {
+            // Sync by model, not by name — name resolution depends on the
+            // registrar cache, which can be stale on a fresh database.
+            $permissions = Permission::query()
+                ->where('guard_name', 'web')
+                ->whereIn('name', $role->permissions())
+                ->get();
+
             Role::findOrCreate($role->value, 'web')
-                ->syncPermissions($role->permissions());
+                ->syncPermissions($permissions);
         }
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 }
