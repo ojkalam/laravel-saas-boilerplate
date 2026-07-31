@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\Billing\BillingPortalController;
 use App\Http\Controllers\Billing\CheckoutController;
 use App\Http\Controllers\CurrentTeamController;
@@ -30,6 +31,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('billing/portal', BillingPortalController::class)
         ->name('billing.portal');
+});
+
+Route::middleware('auth')->group(function () {
+    Route::post('impersonation/{user}', [ImpersonationController::class, 'store'])
+        ->name('impersonation.store');
+
+    Route::delete('impersonation', [ImpersonationController::class, 'destroy'])
+        ->name('impersonation.stop');
 });
 
 require __DIR__.'/settings.php';

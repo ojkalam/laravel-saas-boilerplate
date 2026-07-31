@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureTeamIsSubscribed;
+use App\Http\Middleware\ExpireImpersonation;
 use App\Http\Middleware\RequiresRole;
 use App\Http\Middleware\SetCurrentTeam;
 use Illuminate\Foundation\Application;
@@ -16,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
+            ExpireImpersonation::class,
             SetCurrentTeam::class,
         ]);
 

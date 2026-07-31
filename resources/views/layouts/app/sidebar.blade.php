@@ -4,6 +4,18 @@
         @include('partials.head')
     </head>
     <body class="min-h-screen bg-white dark:bg-zinc-800">
+        @if (session()->has('impersonation.impersonator_id'))
+            <div class="flex items-center justify-center gap-3 bg-amber-500 px-4 py-2 text-sm font-medium text-amber-950">
+                {{ __('You are impersonating :name.', ['name' => auth()->user()->name]) }}
+                <form method="POST" action="{{ route('impersonation.stop') }}">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="underline" data-test="stop-impersonating">
+                        {{ __('Stop impersonating') }}
+                    </button>
+                </form>
+            </div>
+        @endif
         <flux:sidebar sticky collapsible="mobile" class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
             <flux:sidebar.header>
                 <x-app-logo :sidebar="true" href="{{ route('dashboard') }}" wire:navigate />
