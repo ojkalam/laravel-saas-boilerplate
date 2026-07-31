@@ -117,6 +117,16 @@ new #[Title('Profile settings')] class extends Component {
             </div>
         </form>
 
+        <div class="mt-10">
+            <flux:heading size="sm">{{ __('Export your data') }}</flux:heading>
+            <flux:text class="mt-1 text-sm">
+                {{ __('Download a copy of your personal data (profile, team memberships, and activity) as JSON.') }}
+            </flux:text>
+            <flux:button :href="route('profile.export')" size="sm" class="mt-3" data-test="export-data-button">
+                {{ __('Download my data') }}
+            </flux:button>
+        </div>
+
         @if ($this->showDeleteUser)
             <livewire:pages::settings.delete-user-form />
         @endif
