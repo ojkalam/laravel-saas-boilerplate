@@ -17,6 +17,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::livewire('settings/team', 'pages::settings.team')->name('team.edit');
 
+    Route::livewire('settings/api-tokens', 'pages::settings.api-tokens')->name('api-tokens.edit');
+
     Route::get('settings/profile/export', function (Request $request) {
         $data = app(ExportUserData::class)->handle($request->user());
 

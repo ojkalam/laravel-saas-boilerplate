@@ -52,6 +52,25 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(10)->by($request->ip());
         });
 
+        // Per-plan API rate limit, keyed by team. Runs after
+        // SetTeamFromApiToken has bound the team context.
+        RateLimiter::for('api', function (Request $request) {
+            $team = app(CurrentTeam::class)->model();
+
+            if ($team === null) {
+                return Limit::perMinute(10)->by($request->ip());
+            }
+
+            $plan = $team->plan();
+
+            if ($plan->isUnlimited('api_rate_per_minute')) {
+                return Limit::none();
+            }
+
+            return Limit::perMinute($plan->limit('api_rate_per_minute') ?? 10)
+                ->by('team:'.$team->id);
+        });
+
         $this->app->booted(function (): void {
             foreach ($this->app->make('router')->getRoutes()->getRoutes() as $route) {
                 if (in_array('POST', $route->methods(), true)

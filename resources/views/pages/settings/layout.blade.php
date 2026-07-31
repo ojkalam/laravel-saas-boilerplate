@@ -7,6 +7,7 @@
             @php($settingsTeam = app(\App\Support\CurrentTeam::class)->model())
             @if ($settingsTeam)
                 <flux:navlist.item :href="route('team.edit')" wire:navigate>{{ __('Team') }}</flux:navlist.item>
+                <flux:navlist.item :href="route('api-tokens.edit')" wire:navigate>{{ __('API tokens') }}</flux:navlist.item>
             @endif
             @if ($settingsTeam && auth()->user()->hasTeamPermission($settingsTeam, 'team.billing.manage'))
                 <flux:navlist.item :href="route('billing.edit')" wire:navigate>{{ __('Billing') }}</flux:navlist.item>

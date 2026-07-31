@@ -37,6 +37,7 @@ return [
                 'seats' => 1,
                 'projects' => 3,
                 'api_calls' => 1_000,
+                'api_rate_per_minute' => 10,
             ],
             'features' => [
                 'sso' => false,
@@ -56,6 +57,7 @@ return [
                 'seats' => 10,
                 'projects' => 50,
                 'api_calls' => 100_000,
+                'api_rate_per_minute' => 60,
             ],
             'features' => [
                 'sso' => false,
@@ -75,6 +77,7 @@ return [
                 'seats' => null, // unlimited
                 'projects' => null,
                 'api_calls' => 1_000_000,
+                'api_rate_per_minute' => 240,
             ],
             'features' => [
                 'sso' => true,
