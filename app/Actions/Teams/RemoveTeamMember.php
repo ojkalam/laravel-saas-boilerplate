@@ -2,6 +2,7 @@
 
 namespace App\Actions\Teams;
 
+use App\Actions\Billing\SyncSeatCount;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Validation\ValidationException;
@@ -23,5 +24,7 @@ class RemoveTeamMember
             $fallback = $user->teams()->orderByPivot('created_at')->first();
             $user->forceFill(['current_team_id' => $fallback?->id])->save();
         }
+
+        app(SyncSeatCount::class)->handle($team->fresh());
     }
 }

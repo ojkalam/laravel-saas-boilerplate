@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\Team;
 use App\Models\User;
 use App\Support\CurrentTeam;
 use Carbon\CarbonImmutable;
@@ -10,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Laravel\Cashier\Cashier;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,6 +21,10 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->scoped(CurrentTeam::class);
+
+        // The Team is the billable entity; the published Cashier
+        // migrations are re-targeted at the teams table accordingly.
+        Cashier::useCustomerModel(Team::class);
     }
 
     /**

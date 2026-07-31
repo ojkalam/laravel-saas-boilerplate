@@ -2,6 +2,7 @@
 
 namespace App\Actions\Teams;
 
+use App\Actions\Billing\SyncSeatCount;
 use App\Models\TeamInvitation;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -36,5 +37,7 @@ class AcceptTeamInvitation
 
             $user->switchTeam($team);
         });
+
+        app(SyncSeatCount::class)->handle($team->fresh());
     }
 }

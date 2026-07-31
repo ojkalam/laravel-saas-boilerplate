@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Support\Plans\Plan;
+use App\Support\Plans\PlanRegistry;
+use Carbon\CarbonImmutable;
 use Database\Factories\TeamFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -12,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Laravel\Cashier\Billable;
 
 /**
  * @property int $id
@@ -19,12 +23,18 @@ use Illuminate\Support\Str;
  * @property string $name
  * @property string $slug
  * @property bool $personal_team
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
+ * @property string|null $stripe_id
+ * @property string|null $pm_type
+ * @property string|null $pm_last_four
+ * @property CarbonImmutable|Carbon|null $trial_ends_at
+ * @property CarbonImmutable|Carbon|null $created_at
+ * @property CarbonImmutable|Carbon|null $updated_at
  */
 #[Fillable(['name', 'slug', 'personal_team'])]
 class Team extends Model
 {
+    use Billable;
+
     /** @use HasFactory<TeamFactory> */
     use HasFactory;
 
@@ -32,7 +42,56 @@ class Team extends Model
     {
         return [
             'personal_team' => 'boolean',
+            'trial_ends_at' => 'datetime',
         ];
+    }
+
+    /**
+     * The team's effective plan: the subscribed plan when there is an
+     * active subscription, the trial plan during the no-card trial,
+     * otherwise the default (free) plan.
+     */
+    public function plan(): Plan
+    {
+        $registry = app(PlanRegistry::class);
+
+        $subscription = $this->subscription('default');
+
+        if ($subscription !== null && $subscription->valid()) {
+            $price = $subscription->stripe_price;
+
+            if ($price !== null && ($plan = $registry->fromStripePrice($price)) !== null) {
+                return $plan;
+            }
+        }
+
+        if ($this->onGenericTrial()) {
+            return $registry->trialPlan();
+        }
+
+        return $registry->default();
+    }
+
+    public function hasActiveSubscription(): bool
+    {
+        return $this->subscribed('default');
+    }
+
+    /**
+     * True once a past_due subscription has exhausted the grace period.
+     * Callers should degrade the team to read-only, not hard-lock it.
+     */
+    public function isReadOnly(): bool
+    {
+        $subscription = $this->subscription('default');
+
+        if ($subscription === null || $subscription->stripe_status !== 'past_due') {
+            return false;
+        }
+
+        return $subscription->updated_at
+            ->addDays((int) config('plans.grace_period_days'))
+            ->isPast();
     }
 
     /**

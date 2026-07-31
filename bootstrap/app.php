@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureTeamIsSubscribed;
 use App\Http\Middleware\RequiresRole;
 use App\Http\Middleware\SetCurrentTeam;
 use Illuminate\Foundation\Application;
@@ -20,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'team.role' => RequiresRole::class,
+            'subscribed' => EnsureTeamIsSubscribed::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

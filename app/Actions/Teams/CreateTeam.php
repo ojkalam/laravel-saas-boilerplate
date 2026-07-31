@@ -18,6 +18,7 @@ class CreateTeam
             ]);
 
             $team->owner()->associate($user);
+            $team->trial_ends_at = now()->addDays((int) config('plans.trial_days'));
             $team->save();
 
             $team->members()->attach($user, ['role' => 'owner']);
