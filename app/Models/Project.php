@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 /**
  * Example tenant-owned resource. Duplicate this pattern (the
@@ -28,4 +30,15 @@ class Project extends Model
 
     /** @use HasFactory<ProjectFactory> */
     use HasFactory;
+
+    use LogsActivity;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('project')
+            ->logOnly(['name', 'description'])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
+    }
 }

@@ -17,6 +17,8 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Cashier\Billable;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
 
 /**
  * @property int $id
@@ -38,6 +40,17 @@ class Team extends Model
 
     /** @use HasFactory<TeamFactory> */
     use HasFactory;
+
+    use LogsActivity;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('team')
+            ->logOnly(['name', 'slug', 'owner_id'])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
+    }
 
     protected function casts(): array
     {
