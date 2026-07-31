@@ -77,7 +77,7 @@ class HandleStripeWebhook
             return;
         }
 
-        $order = Order::withoutGlobalScope('team')->find((int) $orderId);
+        $order = Order::acrossTeams()->find((int) $orderId);
 
         if ($order === null || ! $order->isPaid()) {
             return;
@@ -97,13 +97,13 @@ class HandleStripeWebhook
         $orderId = $session['metadata']['order_id'] ?? $session['client_reference_id'] ?? null;
 
         if (is_numeric($orderId)) {
-            return Order::withoutGlobalScope('team')->find((int) $orderId);
+            return Order::acrossTeams()->find((int) $orderId);
         }
 
         $sessionId = $session['id'] ?? null;
 
         return is_string($sessionId)
-            ? Order::withoutGlobalScope('team')->where('stripe_checkout_session_id', $sessionId)->first()
+            ? Order::acrossTeams()->where('stripe_checkout_session_id', $sessionId)->first()
             : null;
     }
 

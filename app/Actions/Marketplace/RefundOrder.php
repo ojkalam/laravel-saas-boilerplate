@@ -26,7 +26,7 @@ class RefundOrder
                 'refunded_at' => now(),
             ])->save();
 
-            License::withoutGlobalScope('team')
+            License::acrossTeams()
                 ->whereIn('order_item_id', $order->items()->select('id'))
                 ->update(['status' => LicenseStatus::Revoked]);
         });

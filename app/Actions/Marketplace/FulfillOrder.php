@@ -60,7 +60,7 @@ class FulfillOrder
         }
 
         // Re-delivery of the same webhook must not mint a second key.
-        $existing = License::withoutGlobalScope('team')
+        $existing = License::acrossTeams()
             ->where('order_item_id', $item->id)
             ->first();
 

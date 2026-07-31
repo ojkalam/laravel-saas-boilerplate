@@ -28,6 +28,22 @@ trait BelongsToTeam
     }
 
     /**
+     * Deliberately query across every team.
+     *
+     * The only sanctioned way to leave the tenant scope. Use it where
+     * there is genuinely no current team — Stripe webhooks, queued
+     * jobs, console commands, key-authenticated API calls, and the
+     * staff back-office — and nowhere else. CI greps for raw
+     * withoutGlobalScope calls so that exceptions stay visible here.
+     *
+     * @param  Builder<static>  $query
+     */
+    public function scopeAcrossTeams(Builder $query): void
+    {
+        $query->withoutGlobalScope('team');
+    }
+
+    /**
      * @return BelongsTo<Team, covariant $this>
      */
     public function team(): BelongsTo

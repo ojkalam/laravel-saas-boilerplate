@@ -76,10 +76,11 @@ jobs:
       - name: Larastan (static analysis)
         run: vendor/bin/phpstan analyse --no-progress --memory-limit=1G
 
-      - name: Tenancy guard — no withoutGlobalScopes outside admin context
+      - name: Tenancy guard — leaving the team scope must go through acrossTeams()
         run: |
-          if grep -rn "withoutGlobalScopes\?(" app/ --include='*.php' | grep -v "app/Filament" | grep -v "AllTeams"; then
-            echo "::error::withoutGlobalScope(s) used outside an explicit admin context"
+          if grep -rn "withoutGlobalScopes\?(" app/ --include='*.php' \
+              | grep -v "app/Models/Concerns/BelongsToTeam.php"; then
+            echo "::error::Raw withoutGlobalScope() call. Use the acrossTeams() scope so tenancy exceptions stay auditable."
             exit 1
           else
             echo "OK"

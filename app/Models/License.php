@@ -133,7 +133,7 @@ class License extends Model
             $key = collect(range(1, 4))
                 ->map(fn () => Str::upper(Str::random(4)))
                 ->implode('-');
-        } while (static::withoutGlobalScope('team')->where('key', $key)->exists());
+        } while (static::acrossTeams()->where('key', $key)->exists());
 
         return $key;
     }

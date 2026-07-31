@@ -62,7 +62,7 @@ class AuthorizeDownload
 
     public function downloadsToday(License $license): int
     {
-        return Download::withoutGlobalScope('team')
+        return Download::acrossTeams()
             ->where('license_id', $license->id)
             ->where('created_at', '>=', now()->startOfDay())
             ->count();

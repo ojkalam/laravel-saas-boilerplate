@@ -100,7 +100,7 @@ class Order extends Model
     {
         do {
             $number = 'ORD-'.now()->format('Ymd').'-'.Str::upper(Str::random(6));
-        } while (static::withoutGlobalScope('team')->where('number', $number)->exists());
+        } while (static::acrossTeams()->where('number', $number)->exists());
 
         return $number;
     }

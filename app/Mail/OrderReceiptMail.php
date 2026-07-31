@@ -28,7 +28,7 @@ class OrderReceiptMail extends Mailable
         return new Content(
             markdown: 'mail.order-receipt',
             with: [
-                'licenses' => License::withoutGlobalScope('team')
+                'licenses' => License::acrossTeams()
                     ->whereIn('order_item_id', $this->order->items()->select('id'))
                     ->with('product')
                     ->get(),
