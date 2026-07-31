@@ -21,6 +21,7 @@ class CreateTeam
             $team->save();
 
             $team->members()->attach($user, ['role' => 'owner']);
+            $user->assignTeamRole($team, 'owner');
 
             if ($user->current_team_id === null) {
                 $user->forceFill(['current_team_id' => $team->id])->save();

@@ -29,6 +29,7 @@ class AcceptTeamInvitation
         DB::transaction(function () use ($user, $invitation, $team): void {
             if (! $team->hasMember($user)) {
                 $team->members()->attach($user, ['role' => $invitation->role]);
+                $user->assignTeamRole($team, $invitation->role);
             }
 
             $invitation->delete();

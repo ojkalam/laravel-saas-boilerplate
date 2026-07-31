@@ -17,6 +17,7 @@ class RemoveTeamMember
         }
 
         $team->members()->detach($user);
+        $user->removeTeamRoles($team);
 
         if ($user->current_team_id === $team->id) {
             $fallback = $user->teams()->orderByPivot('created_at')->first();

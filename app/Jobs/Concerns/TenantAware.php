@@ -26,10 +26,12 @@ trait TenantAware
     protected function bindTeamContext(): void
     {
         app(CurrentTeam::class)->set(Team::findOrFail($this->tenantTeamId));
+        setPermissionsTeamId($this->tenantTeamId);
     }
 
     protected function forgetTeamContext(): void
     {
         app(CurrentTeam::class)->forget();
+        setPermissionsTeamId(null);
     }
 }

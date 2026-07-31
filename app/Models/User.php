@@ -17,6 +17,7 @@ use Illuminate\Support\Str;
 use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
+use Spatie\Permission\Traits\HasRoles;
 
 /**
  * @property int $id
@@ -25,6 +26,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property Carbon|null $email_verified_at
  * @property string $password
  * @property int|null $current_team_id
+ * @property bool $is_staff
  * @property string|null $two_factor_secret
  * @property string|null $two_factor_recovery_codes
  * @property Carbon|null $two_factor_confirmed_at
@@ -38,7 +40,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 class User extends Authenticatable implements PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
+    use HasFactory, HasRoles, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
 
     /**
      * Get the attributes that should be cast.
@@ -50,6 +52,7 @@ class User extends Authenticatable implements PasskeyUser
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_staff' => 'boolean',
         ];
     }
 
@@ -111,6 +114,66 @@ class User extends Authenticatable implements PasskeyUser
     public function teamRole(Team $team): ?string
     {
         return $team->memberRole($this);
+    }
+
+    /**
+     * Check a Spatie permission against an explicit team, regardless of
+     * the currently bound team context. Always prefer this in policies —
+     * it cannot be fooled by a stale global team id.
+     */
+    public function hasTeamPermission(Team $team, string $permission): bool
+    {
+        if (! $this->belongsToTeam($team)) {
+            return false;
+        }
+
+        $previous = getPermissionsTeamId();
+
+        setPermissionsTeamId($team->id);
+        $this->unsetRelation('roles')->unsetRelation('permissions');
+
+        try {
+            return $this->hasPermissionTo($permission);
+        } finally {
+            setPermissionsTeamId($previous);
+            $this->unsetRelation('roles')->unsetRelation('permissions');
+        }
+    }
+
+    /**
+     * Assign a role to the user scoped to the given team.
+     */
+    public function assignTeamRole(Team $team, string $role): void
+    {
+        $previous = getPermissionsTeamId();
+
+        setPermissionsTeamId($team->id);
+        $this->unsetRelation('roles')->unsetRelation('permissions');
+
+        try {
+            $this->assignRole($role);
+        } finally {
+            setPermissionsTeamId($previous);
+            $this->unsetRelation('roles')->unsetRelation('permissions');
+        }
+    }
+
+    /**
+     * Remove all of the user's roles scoped to the given team.
+     */
+    public function removeTeamRoles(Team $team): void
+    {
+        $previous = getPermissionsTeamId();
+
+        setPermissionsTeamId($team->id);
+        $this->unsetRelation('roles')->unsetRelation('permissions');
+
+        try {
+            $this->syncRoles([]);
+        } finally {
+            setPermissionsTeamId($previous);
+            $this->unsetRelation('roles')->unsetRelation('permissions');
+        }
     }
 
     /**

@@ -35,6 +35,7 @@ class SetCurrentTeam
             }
 
             app(CurrentTeam::class)->set($team);
+            setPermissionsTeamId($team?->id);
         }
 
         return $next($request);
